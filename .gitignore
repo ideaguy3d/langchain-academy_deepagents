@@ -1,0 +1,127 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+.m1_gmail_state.json
+.m1_github_state.json
+.m1_github_token
+python/m1/gh_auth/.mcp.github.json
+client_secret_*.json
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Editor autosave / lock files (can mirror .env and leak secrets)
+\#*\#
+.#*
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+site-packages/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# uv
+.uv/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# LangSmith / LangChain
+langsmith_traces/
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+pyrightconfig.json
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Generated outputs
+thinkific/docs/
+python/m2/genre_revenue.png
+python/m4/output/
+python/m4/homework_data/
+python/temp/
+
+# Module 5 — runtime/generated artifacts
+.mcp.generated.json
+python/m5/sales_assistant/mcp/mail_store.json
+python/m5/sales_assistant/outputs/
+python/m5/sales_assistant/retrieve/
+python/m5/sales_assistant/research/
+python/m5/sales_assistant_sandbox/mcp/mail_store.json
+python/m5/sales_assistant_sandbox/outputs/
+python/m5/sales_assistant_sandbox/retrieve/
+python/m5/sales_assistant_sandbox/research/
+.langgraph_api/
+
+# agent-chat-ui (Module 5.5 — forked Next.js app)
+agent-chat-ui/node_modules/
+agent-chat-ui/.next/
+agent-chat-ui/next-env.d.ts
+agent-chat-ui/*.tsbuildinfo
+agent-chat-ui/package-lock.json
+
+# Working docs (not checked in)
+checklist.md
+python/m5/spec.md
+python/m5/lessonplan.md
+python/m1/m1.6_NOTES.md
+python/m1/archive/
+python/m1/gmail_auth.py
+thinkific/src/m3/summarization-and-offload-research.txt
+
+# Backup files
+*.bak
+
+# Deferred / unused lessons
+gmail_unused/
+thinkific/src/m1/archive/
+thinkific/src/*/images/archive/
+
+# Trial / sketch images (referenced only in *.sketches.md)
+thinkific/src/m3/images/m3.0-*.svg
+thinkific/archive/
+thinkific/src/archive/
+python/m5/archive/
+archive/
+.agents/
+.claude/
+thinkific/src/m3/m3.sketches.md
+python/m5/sales_assistant/agent_sandbox.py
