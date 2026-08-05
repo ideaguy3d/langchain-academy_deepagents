@@ -10,6 +10,7 @@ from models import model
 @tool
 def ask_user(question: str, choices: list[str]) -> str:
     """Ask the user a clarifying question with a fixed set of choices."""
+    
     return f"[No response recorded for: {question}]"
 
 

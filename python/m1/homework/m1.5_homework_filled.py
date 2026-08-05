@@ -24,7 +24,8 @@ RETRO_GAME_FACTS = {
 @tool
 def lookup_retro_game_fact(game: str) -> str:
     """Return one trivia fact about a classic arcade or console game. Call
-    with a lowercase game name, e.g. 'pac-man' or 'tetris'."""
+    with a lowercase game name, e.g. 'pac-man' or 'tetris'.
+    """
     key = game.strip().lower()
     if key in RETRO_GAME_FACTS:
         return RETRO_GAME_FACTS[key]
@@ -46,7 +47,7 @@ agent = create_deep_agent(
     model=model,
     name="Homework_Agent",
     tools=[lookup_retro_game_fact],
-    system_prompt=SYSTEM_PROMPT,
+    system_prompt=SYSTEM_PROMPT
 )
 
 result = agent.invoke(
