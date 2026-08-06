@@ -59,7 +59,11 @@ RUN
 
 from __future__ import annotations
 
+import asyncio
+
+from deepagents import create_deep_agent
 from langchain_core.tools import tool
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 from judge_card_helpers import (
     OUTPUT_DIR,
@@ -73,17 +77,6 @@ from judge_card_helpers import (
 )
 from models import model
 
-
-# ════════════════════════════════════════════════════════════════════════
-# TODO 1 (Lesson 1.4, The System Prompt: Persona)
-# Three judges are already written below. 
-# Pick any of them and the script runs as-is. 
-# Required: write "your_persona" below, fully your own voice.
-
-# Same job every time (score three traits, match a product, hand off a
-# verdict line), a completely different voice. 
-# Make it genuinely rude / roast you (if you want).
-# ════════════════════════════════════════════════════════════════════════
 
 JUDGE_PERSONAS: dict[str, str] = {
     "salty_pirate": """You are Captain Hardcode, a swashbuckling pirate
@@ -126,13 +119,16 @@ can barely be bothered to look up from whatever they were doing to
 deliver it. You are sharp, a little cruel, and allergic to participation
 trophies.""" + TOOL_SEQUENCE,
 
-    # TODO 1: name and write your own persona here. Keep the same job
-    # (score three traits, match a product, hand off a verdict)
-    # Give it a name and a voice all your own.
-    "your_persona": """TODO 1: replace this with your own judge persona. Give
-yourself a name and a distinct voice (see the three judges above for the
-shape), then call yourself that name wherever judge_name is expected
-below.""" + TOOL_SEQUENCE,
+    "your_persona": """You are Dr. Byte, a manic, exacting mad scientist
+running a personality experiment on this builder (developer). Speak only in
+the breathless voice of a laboratory genius: announce observations as
+experimental findings, call the user "subject," and punctuate every verdict
+with a dramatic scientific exclamation such as "Eureka!" or "Fascinating!"
+Treat each trait score as volatile data from a questionable invention; praise
+decisive answers as breakthroughs and diagnose indecision as a mildly
+alarming side effect. Give the matched LangChain product like the final
+component required to activate an ingenious machine, then hand off a vivid,
+concise verdict fit for the lab report.""" + TOOL_SEQUENCE,
 }
 
 
@@ -162,54 +158,39 @@ def score_and_match(answers: list[tuple[int, int, int]]) -> dict:
     # clamp every score back into that range.
     scores = [max(0, min(100, score)) for score in scores]
 
-    # TODO here: scores is finished. Use it to pick a matched product.
-    # 1. Set axis_index to the index (0, 1, or 2) of whichever score in
-    #    scores is furthest from 50, i.e. has the biggest abs(score - 50).
-    #    Hint: this is a "find the index of the biggest value" problem.
-    #    Python's max() takes a key= function if you want to search by
-    #    something other than the value itself, e.g.
-    #    max(range(len(scores)), key=lambda i: ...)
-    # 2. TRAIT_AXES[axis_index] is a (left_label, right_label) pair, e.g.
-    #    ("Chaotic", "Organized"). Set direction to whichever label
-    #    matches the side scores[axis_index] leans toward: the right
-    #    label if scores[axis_index] >= 50, otherwise the left label.
-    # 3. Set product to PRODUCT_MATCHES[direction.lower()], e.g.
-    #    PRODUCT_MATCHES["chaotic"] -> "Fleet".
-    # 4. Return {"trait_scores": scores, "product": product}.
-    raise NotImplementedError("TODO 2: see the comments above")
+    axis_index = max(range(len(scores)), key=lambda i: abs(scores[i] - 50))
+    left_label, right_label = TRAIT_AXES[axis_index]
+    direction = right_label if scores[axis_index] >= 50 else left_label
+    product = PRODUCT_MATCHES[direction.lower()]
+    return {"trait_scores": scores, "product": product}
 
 
-# ════════════════════════════════════════════════════════════════════════
-# TODO 3 (Lesson 1.6, MCP: Connecting Agents to External Services)
-# A stretch goal.
-# score_and_match (TODO 2) already decided which product you got, purely
-# from the fixed PRODUCT_MATCHES lookup; MCP has no say in that. 
-
-# This tool's only job is to describe that already-chosen product with one
-# real, live fact instead of a guess. 
-
-# Mirror m1.6_agent_mcp.py exactly:
-#   1. Connect to https://docs.langchain.com/mcp with MultiServerMCPClient.
-#   2. Filter its tools down to just "search_docs_by_lang_chain".
-#   3. Spin up a tiny agent with that one tool and ask it to describe
-#      `product` in ONE short factual sentence (under 25 words).
-#   4. Return that sentence, stripped of extra whitespace.
-
-# This tool itself must stay synchronous, so put the MCP/agent calls in a
-# separate `async def` helper (same shape as m1.6's `async def main(): ...`)
-# and call that helper with asyncio.run(...) from inside fetch_product_fact.
-
-# On any failure (no network, tool error), fall back to PLACEHOLDER_FACT so
-# the practice stays runnable either way.
-# ════════════════════════════════════════════════════════════════════════
-
-# No login, API key, or account needed here: docs.langchain.com/mcp is a
-# public server, and this call only describes the product you already got
-# from TODO 2. 
-
-# PLACEHOLDER_FACT exists purely so the script still finishes
-# if the docs server is briefly unreachable, not because of any auth step.
 PLACEHOLDER_FACT = "no real data connected yet: swap this for a real MCP-sourced fact"
+
+
+async def _fetch_product_fact_async(product: str) -> str:
+    try:
+        client = MultiServerMCPClient({
+            "docs-langchain": {
+                "transport": "http",
+                "url": "https://docs.langchain.com/mcp",
+            }
+        })
+        tools = await client.get_tools()
+        tools = [tool for tool in tools if tool.name == "search_docs_by_lang_chain"]
+        agent = create_deep_agent(model=model, tools=tools)
+        result = await agent.ainvoke({
+            "messages": [{
+                "role": "user",
+                "content": (
+                    f"Use the LangChain docs MCP tool to describe '{product}' in "
+                    "one factual sentence under 25 words. Return only the sentence."
+                ),
+            }]
+        })
+        return result["messages"][-1].content.strip()
+    except Exception:
+        return PLACEHOLDER_FACT
 
 
 @tool
@@ -217,7 +198,7 @@ def fetch_product_fact(product: str) -> str:
     """Look up one grounded, factual sentence about the LangChain product
     you were matched with. Call this right after score_and_match, passing
     in the product name it returned."""
-    raise NotImplementedError("TODO 3: see the comment block above")
+    return asyncio.run(_fetch_product_fact_async(product))
 
 
 # ════════════════════════════════════════════════════════════════════════
